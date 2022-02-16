@@ -1,0 +1,41 @@
+# https://help.github.com/en/categories/automating-your-workflow-with-github-actions
+# https://github.com/php/pecl-database-dbase/blob/master/.github/workflows/ci.yml
+
+on:
+  - pull_request
+  - push
+
+name: "Continuous Integration"
+
+jobs:
+
+  linux:
+    name: "Build and Tests (Linux)"
+    runs-on: ubuntu-latest
+
+    strategy:
+      fail-fast: false
+      matrix:
+        php-version: ["7.2", "7.3", "7.4", "8.0", "8.1"]
+
+    steps:
+      - name: "Install liblzma"
+        run: sudo apt-get install -y liblzma-dev
+
+      - name: "Checkout"
+        uses: actions/checkout@v2
+
+      - name: "Install PHP ${{ matrix.php-version }}"
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php-version }}
+
+      - name: "Compile extension"
+        run: |
+          phpize
+          ./configure
+          make
+          sudo make install
+          echo "extension=xz.so" >> `php --ini | grep "Loaded Configuration File:" | sed -e "s/.*:\s*//"`
+      - name: "Run tests"
+        run: make test
